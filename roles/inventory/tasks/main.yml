@@ -20,7 +20,7 @@
       amazon.aws.ec2_instance_info:
         region: "{{ inventory_region }}"
         filters:
-          tag:Type: ["terraform", "vault"]
+          tag:Type: ["ubuntu"]
           instance-state-name: [running]
 
     - name: Create a new token
@@ -29,7 +29,7 @@
         aap_username: "{{ lookup('ansible.builtin.env', 'CONTROLLER_USERNAME') }}"
         aap_password: "{{ lookup('ansible.builtin.env', 'CONTROLLER_PASSWORD') }}"
         aap_validate_certs: false
-        description: Inventory
+        description: Network Inventory
         scope: write
         state: present
 
@@ -55,7 +55,7 @@
         controller_host: "{{ lookup('ansible.builtin.env', 'CONTROLLER_HOST') }}"
         controller_oauthtoken: "{{ ansible_facts['aap_token']['token'] }}"
         validate_certs: false
-        name: hashi
+        name: ubuntu
         description: Automation Controller Group
         inventory: "{{ inventory_managed_inventory_name }}"
         hosts: "{{ item['tags']['Name'] }}"
@@ -66,7 +66,7 @@
       ansible.builtin.add_host:
         name: "{{ item['tags']['Name'] }}"
         groups:
-          - hashi
+          - ubuntu
 
     - name: Remove my token
       ansible.platform.token:
