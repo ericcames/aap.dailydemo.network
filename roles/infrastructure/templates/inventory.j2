@@ -1,0 +1,8 @@
+[aap_ubuntu]
+{{ ubuntu_host ))
+
+[aap_ubuntu:vars]
+install_domain={{ domain_name }}
+ansible_user=ec2-user
+ansible_ssh_common_args='-o StrictHostKeyChecking=accept-new'
+ansible_ssh_private_key_file={{ playbook_dir }}/ec2_key

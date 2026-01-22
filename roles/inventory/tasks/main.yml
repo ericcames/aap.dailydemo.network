@@ -1,0 +1,101 @@
+---
+- name: Stuff we are always going to do
+  tags:
+    - always
+  block:
+
+    # fail with good error for Automation controller user
+    - name: Determine that both AAP and Machine credentials are set
+      ansible.builtin.assert:
+        that:
+          - "lookup('ansible.builtin.env', 'CONTROLLER_USERNAME') !=''"
+          - "lookup('ansible.builtin.env', 'CONTROLLER_HOST') !=''"
+          - "lookup('ansible.builtin.env', 'CONTROLLER_PASSWORD') !=''"
+        fail_msg:
+          - "Red Hat Ansible Automation Platform credential is not set"
+          - "Please assign correct credentials to the Job Template"
+
+    - name: Get Demo instances we care about
+      register: instance_info
+      amazon.aws.ec2_instance_info:
+        region: "{{ inventory_region }}"
+        filters:
+          tag:Type: ["terraform", "vault"]
+          instance-state-name: [running]
+
+    - name: Create a new token
+      ansible.platform.token:
+        aap_hostname: "{{ lookup('ansible.builtin.env', 'CONTROLLER_HOST') }}"
+        aap_username: "{{ lookup('ansible.builtin.env', 'CONTROLLER_USERNAME') }}"
+        aap_password: "{{ lookup('ansible.builtin.env', 'CONTROLLER_PASSWORD') }}"
+        aap_validate_certs: false
+        description: Inventory
+        scope: write
+        state: present
+
+- name: Adding our new vm to our inventory
+  tags:
+    - create
+  block:
+
+    - name: Update the AAP Managed Inventory
+      loop: "{{ instance_info['instances'] }}"
+      ansible.controller.host:
+        controller_host: "{{ lookup('ansible.builtin.env', 'CONTROLLER_HOST') }}"
+        controller_oauthtoken: "{{ ansible_facts['aap_token']['token'] }}"
+        validate_certs: false
+        name: "{{ item['tags']['Name'] }}"
+        inventory: "{{ inventory_managed_inventory_name }}"
+        state: present
+        enabled: true
+
+    - name: Create a group
+      loop: "{{ instance_info['instances'] }}"
+      ansible.controller.group:
+        controller_host: "{{ lookup('ansible.builtin.env', 'CONTROLLER_HOST') }}"
+        controller_oauthtoken: "{{ ansible_facts['aap_token']['token'] }}"
+        validate_certs: false
+        name: hashi
+        description: Automation Controller Group
+        inventory: "{{ inventory_managed_inventory_name }}"
+        hosts: "{{ item['tags']['Name'] }}"
+        preserve_existing_hosts: true
+
+    - name: Update runtime inventory
+      loop: "{{ instance_info['instances'] }}"
+      ansible.builtin.add_host:
+        name: "{{ item['tags']['Name'] }}"
+        groups:
+          - hashi
+
+    - name: Remove my token
+      ansible.platform.token:
+        aap_hostname: "{{ lookup('ansible.builtin.env', 'CONTROLLER_HOST') }}"
+        existing_token: "{{ ansible_facts['aap_token'] }}"
+        aap_token: "{{ ansible_facts['aap_token']['token'] }}"
+        aap_validate_certs: false
+        state: absent
+
+- name: Removing our vm from our inventory
+  tags:
+    - remove
+  block:
+
+    - name: Remove inventory host groups
+      loop:
+        - hashi
+      ansible.controller.group:
+        controller_host: "{{ lookup('ansible.builtin.env', 'CONTROLLER_HOST') }}"
+        controller_oauthtoken: "{{ ansible_facts['aap_token']['token'] }}"
+        validate_certs: false
+        name: "{{ item }}"
+        inventory: "{{ inventory_managed_inventory_name }}"
+        state: absent
+
+    - name: Remove my token
+      ansible.platform.token:
+        aap_hostname: "{{ lookup('ansible.builtin.env', 'CONTROLLER_HOST') }}"
+        existing_token: "{{ ansible_facts['aap_token'] }}"
+        aap_token: "{{ ansible_facts['aap_token']['token'] }}"
+        aap_validate_certs: false
+        state: absent

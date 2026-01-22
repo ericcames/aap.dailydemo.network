@@ -1,0 +1,30 @@
+---
+- name: Provision ubuntu server
+  hosts: localhost
+  connection: local
+
+  tasks:
+
+    - name: Include the infrastructure role
+      tags:
+        - create
+      ansible.builtin.include_role:
+        name: infrastructure
+
+    - name: Include the inventory role
+      tags:
+        - create
+      ansible.builtin.include_role:
+        name: inventory
+
+    - name: Include the infrastructure role
+      tags:
+        - remove
+      ansible.builtin.include_role:
+        name: infrastructure
+
+    - name: Include the inventory role
+      tags:
+        - remove
+      ansible.builtin.include_role:
+        name: inventory

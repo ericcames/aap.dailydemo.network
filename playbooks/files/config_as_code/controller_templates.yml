@@ -1,0 +1,17 @@
+---
+controller_templates:
+  - name: "Daily Demo Network Create/Remove"
+    job_type: run
+    inventory: AAP Managed Inventory
+    organization: "{{ my_organization }}"
+    execution_environment: Default execution environment
+    project: aap.dailydemo.network
+    playbook: playbooks/main.yml
+    ask_tags_on_launch: true
+    job_tags: create,remove
+    credentials:
+      - "{{ my_aws_credential }}"
+      - "{{ my_aap_credential }}"
+    extra_vars:
+      my_remote_ssh_pub_key: "{{ my_remote_ssh_pub_key }}"
+      ansible_python_interpreter: /usr/bin/python3
