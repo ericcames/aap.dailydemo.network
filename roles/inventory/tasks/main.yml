@@ -83,7 +83,7 @@
 
     - name: Remove inventory host groups
       loop:
-        - hashi
+        - ubuntu
       ansible.controller.group:
         controller_host: "{{ lookup('ansible.builtin.env', 'CONTROLLER_HOST') }}"
         controller_oauthtoken: "{{ ansible_facts['aap_token']['token'] }}"
